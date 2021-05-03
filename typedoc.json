@@ -1,0 +1,10 @@
+{
+  "name": "P10 | Aplicación de procesamiento de notas de texto | Cliente - Servidor",
+  "entryPoints": [
+    "./src"
+  ],
+  "out": "./docs",
+  "theme": "default",
+  "highlightTheme": "github-light",
+  "media": "./media"
+}
