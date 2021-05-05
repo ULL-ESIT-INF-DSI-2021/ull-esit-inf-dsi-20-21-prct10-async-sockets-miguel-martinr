@@ -7,76 +7,74 @@ import { Note } from '../NotesManager/note';
 import * as net from 'net';
 import { RequestType } from '../helpers';
 import EventEmitter = require('events');
+import { boolean } from 'yargs';
+
+
+/**
+ * @param {boolean} emitRequestSent If set to true it will emit a `requestSent` event after completing a request process.
+ */
+export type ProcessRequestOptions = {
+  emitRequestSent: boolean
+}
 
 /**
  * A class that manages a client connection for NotesManager service 
  */
-export class NotesManagerClient extends EventEmitter{
-  private connection: net.Socket;
-  private port: number;
+export class NotesManagerClient extends EventEmitter {
 
-  constructor() {
-    super();
-  }
-  
   /**
-   * Opens a new connection closing the older one (if there was one) And
-   * sets handlers for it
-   * @param {number} port 
+   * 
+   * @param {EventEmitter} connection Client connection
    */
-  connect(port: number) {
-    this.connection?.end();
-    this.port = port;
-    this.connection = net.connect(this.port);
-    this.setHandlers();
+  constructor(private connection: EventEmitter) {
+    super();
+    this.setHandlers(this.connection);
   }
+
 
   /**
    * Sets handlers for current connection
    */
-  setHandlers() {
+  setHandlers(connection: EventEmitter) {
     // Error handler
-    this.connection.on('error', (err) => {
+    connection.on('error', (err) => {
       console.log(`There has been an error: ${err.message}`.red);
       process.exit(-1);
     });
-  
+
     // Data handler (emits a 'response' event when a complete response has been received)
     let incomingResponse = '';
-    this.connection.on('data', (chunk) => {
+    connection.on('data', (chunk) => {
       incomingResponse += chunk;
-      
+
       if (incomingResponse[incomingResponse.length - 1] === '\n') {
         this.emit('response', JSON.parse(incomingResponse));
         incomingResponse = '';
       }
     });
 
-    // Connection end handler (closes current connection)
-    this.connection.on('end', () => {
-      // console.log(`Server has ended the connection`.yellow);
-      this.connection.end();
-    })  
   }
 
   /**
-   * Sends stringified request on 50 characters chunks. \n is used as delimiter
+   * It splits the request into 50 character chunks and the callback is executed passing
+   * each of those chunks and the client connection.
    * @param {RequestType} request Request to send
-   * @param {number} port Server port
+   * @param {(chunk: string, connection: EventEmitter) => void} cb Callback for each data chunk
+   * @param {ProcessRequestOptions} opts
    */
-  sendRequest(request: RequestType, port: number = this.port) {
+  processRequest(req: RequestType,  cb: (chunk: string, connection: EventEmitter) => void, 
+  opts: ProcessRequestOptions = {emitRequestSent: true}) {
 
-    if (port !== this.port) {
-      this.connect(port);
-    }
-
-  
-    let stringifiedRequest = JSON.stringify(request).split('');
-
+    let stringifiedRequest = JSON.stringify(req).split('');
     while (stringifiedRequest.length > 0) {
       let chunk = stringifiedRequest.splice(0, 51).join('');
       chunk += stringifiedRequest.length === 0 ? '\n' : '';
-      this.connection.write(chunk);
+      cb(chunk, this.connection);
     }
   }
+  
 }
+
+
+
+

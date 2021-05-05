@@ -34,10 +34,10 @@ export class NotesManagerServer extends EventEmitter {
       connection.on('data', (chunk) => {
         incomingRequest += chunk;
         
-        if (incomingRequest[incomingRequest.length - 1] === '\n') {      
-          this.emit('request', JSON.parse(incomingRequest), connection);
-          incomingRequest = '';
-        }
+        // if (incomingRequest[incomingRequest.length - 1] === '\n') {      
+        //   this.emit('request', JSON.parse(incomingRequest), connection);
+        //   incomingRequest = '';
+        // }
       });
     });  
     

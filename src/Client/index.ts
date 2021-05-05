@@ -3,9 +3,11 @@ import * as yargs from 'yargs';
 import { Note } from '../NotesManager/note';
 import { InvalidColor } from '../NotesManager/Errors';
 import { KnownColors } from '../NotesManager/Interfaces/colored';
+import * as net from 'net';
 
 
-const client = new NotesManagerClient();
+const sendRequest = (chunk: string, connection: net.Socket) => connection.write(chunk);
+
 
 yargs
   .scriptName('notes-app')
@@ -50,14 +52,14 @@ yargs.command({
 
       if (!Note.checkColor(argv.color)) throw new InvalidColor(argv.color);
 
-      // const client = new NotesManagerClient(argv.port);
-      client.sendRequest({
+      const client = new NotesManagerClient(net.connect(argv.port));
+      client.processRequest({
         type: 'add',
         username: argv.username,
         title: argv.title,
         body: argv.body,
         color: argv.color as KnownColors
-      }, argv.port);
+      }, sendRequest);
 
       client.on('response', (res) => {
         console.log(res.output);
@@ -92,11 +94,12 @@ yargs.command({
     if (typeof argv.username === 'string' && typeof argv.title === 'string'
       && typeof argv.port === 'number') {
       
-      client.sendRequest({
+      const client = new NotesManagerClient(net.connect(argv.port));
+      client.processRequest({
         type: 'remove',
         username: argv.username,
         title: argv.title,
-      }, argv.port);
+      }, sendRequest);
 
       client.on('response', (res) => {
         console.log(res.output);
@@ -143,7 +146,7 @@ yargs.command({
     }
   },
   handler(argv) {
-    if (typeof argv.username === 'string' && typeof argv.title === 'string' 
+    if (typeof argv.username === 'string' && typeof argv.title === 'string'
       && typeof argv.port === 'number') {
       const params = {
         newTitle: argv.newTitle,
@@ -151,12 +154,13 @@ yargs.command({
         newColor: argv.newColor,
       };
 
-      client.sendRequest({
+      const client = new NotesManagerClient(net.connect(argv.port));
+      client.processRequest({
         type: 'edit',
         username: argv.username,
         title: argv.title,
         params: params,
-      });
+      }, sendRequest);
 
       client.on('response', (res) => {
         console.log(res.output);
@@ -185,10 +189,11 @@ yargs.command({
   handler(argv) {
     if (typeof argv.username === 'string' && typeof argv.port === 'number') {
 
-      client.sendRequest({
-          type: 'list',
-          username: argv.username,
-        }, argv.port);
+      const client = new NotesManagerClient(net.connect(argv.port));
+      client.processRequest({
+        type: 'list',
+        username: argv.username,
+      }, sendRequest);
 
       client.on('response', (res) => {
         res.output.forEach((noteTitle: string) => console.log(noteTitle));
@@ -222,12 +227,13 @@ yargs.command({
   handler(argv) {
     if (typeof argv.username === 'string' && typeof argv.title === 'string'
       && typeof argv.port === 'number') {
-        
-      client.sendRequest({
+
+      const client = new NotesManagerClient(net.connect(argv.port));
+      client.processRequest({
         type: 'read',
         username: argv.username,
         title: argv.title
-      }, argv.port);
+      }, sendRequest);
 
       client.on('response', (res) => {
         console.log(res.output);
