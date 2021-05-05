@@ -4,6 +4,7 @@ import { Note } from '../NotesManager/note';
 import { InvalidColor } from '../NotesManager/Errors';
 import { KnownColors } from '../NotesManager/Interfaces/colored';
 import * as net from 'net';
+import { fail } from '../helpers';
 
 
 const sendRequest = (chunk: string, connection: net.Socket) => connection.write(chunk);
@@ -197,6 +198,11 @@ yargs.command({
 
       client.on('response', (res) => {
         res.output.forEach((noteTitle: string) => console.log(noteTitle));
+      });
+
+      client.on('timeout', (connection: net.Socket) => {
+        console.log(fail(`Timeout! Server took too long to respond`));
+        connection.end();
       })
     }
   },

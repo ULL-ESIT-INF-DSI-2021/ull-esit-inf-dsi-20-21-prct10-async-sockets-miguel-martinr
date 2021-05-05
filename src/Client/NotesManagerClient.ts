@@ -1,13 +1,8 @@
-import chalk = require('chalk');
-import 'colors';
-import yargs = require('yargs');
-import { InvalidColor } from '../NotesManager/Errors/invalid_color';
-import { KnownColors } from '../NotesManager/Interfaces/colored';
-import { Note } from '../NotesManager/note';
-import * as net from 'net';
 import { RequestType } from '../helpers';
 import EventEmitter = require('events');
-import { boolean } from 'yargs';
+
+import { Timer } from './Timer';
+import { fail } from '../helpers';
 
 
 /**
@@ -17,10 +12,17 @@ export type ProcessRequestOptions = {
   emitRequestSent: boolean
 }
 
+
+
+
+
+
+
 /**
  * A class that manages a client connection for NotesManager service 
  */
 export class NotesManagerClient extends EventEmitter {
+  private timer: Timer;
 
   /**
    * 
@@ -28,6 +30,7 @@ export class NotesManagerClient extends EventEmitter {
    */
   constructor(private connection: EventEmitter) {
     super();
+    this.timer = new Timer();
     this.setHandlers(this.connection);
   }
 
@@ -38,7 +41,7 @@ export class NotesManagerClient extends EventEmitter {
   setHandlers(connection: EventEmitter) {
     // Error handler
     connection.on('error', (err) => {
-      console.log(`There has been an error: ${err.message}`.red);
+      console.log(fail(`There has been an error: ${err.message}`));
       process.exit(-1);
     });
 
@@ -52,6 +55,18 @@ export class NotesManagerClient extends EventEmitter {
         incomingResponse = '';
       }
     });
+
+    this.on('requestSent', (req) => {
+      this.timer.start(2000);
+    })
+
+    this.on('response', () => {
+      this.timer.stop();
+    });
+
+    this.timer.on('timeout', () => {
+      this.emit('timeout', this.connection);
+    })
 
   }
 
@@ -71,6 +86,8 @@ export class NotesManagerClient extends EventEmitter {
       chunk += stringifiedRequest.length === 0 ? '\n' : '';
       cb(chunk, this.connection);
     }
+
+    opts.emitRequestSent ? this.emit('requestSent', req) : true;
   }
   
 }
