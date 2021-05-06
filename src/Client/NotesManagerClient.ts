@@ -1,8 +1,7 @@
-import { RequestType } from '../helpers';
+import { RequestType, fail } from '../helpers';
 import { EventEmitter } from 'events';
-
 import { Timer } from './Timer';
-import { fail } from '../helpers';
+
 
 
 /**
