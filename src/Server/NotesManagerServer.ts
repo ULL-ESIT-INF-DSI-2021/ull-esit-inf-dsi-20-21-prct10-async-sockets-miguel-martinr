@@ -20,7 +20,9 @@ export class NotesManagerServer extends EventEmitter {
    * 
    * @param {(chunk: string, connection: EventEmitter) => void)} sendMethod Defines how data chunks will be sent on each connection
    */
-  constructor(private sendMethod: (chunk: string, connection: EventEmitter) => void) {
+  constructor(private sendingMethod: (chunk: string, connection: EventEmitter) => void,
+    private endingMethod?: (connection: EventEmitter) => void) {
+    
     super();
     this.notesManager = new NotesManager();
 
@@ -28,7 +30,8 @@ export class NotesManagerServer extends EventEmitter {
     this.on('request', (req, connection) => {
       let response = this.processRequest(req);
       this.sendResponse(connection, response, req);
-      connection.end();
+      
+      if (this.endingMethod) this.endingMethod(connection);
     });
 
     
@@ -90,7 +93,7 @@ export class NotesManagerServer extends EventEmitter {
     while (splittedRes.length > 0) {
       let chunk = splittedRes.splice(0, 51).join('');
       chunk += splittedRes.length === 0 ? '\n' : '';
-      this.sendMethod(chunk, connection);
+      this.sendingMethod(chunk, connection);
     }
 
     this.emit('responseSent', res, req);
