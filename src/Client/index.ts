@@ -59,15 +59,22 @@ yargs.command({
       demandOption: false,
       default: 5510,
       type: 'number'
+    },
+    host: {
+      describe: 'Server host',
+      demandOption: false,
+      default: '127.0.0.1',
+      type: 'string',
     }
   },
   handler(argv) {
     if (typeof argv.username === 'string' && typeof argv.title === 'string' &&
-      typeof argv.color === 'string' && typeof argv.body === 'string' && typeof argv.port === 'number') {
+      typeof argv.color === 'string' && typeof argv.body === 'string' && 
+      typeof argv.port === 'number' && typeof argv.host === 'string') {
 
       if (!Note.checkColor(argv.color)) throw new InvalidColor(argv.color);
 
-      client.connect(net.connect(argv.port));
+      client.connect(net.connect(argv.port, argv.host));
       client.processRequest({
         type: 'add',
         username: argv.username,
