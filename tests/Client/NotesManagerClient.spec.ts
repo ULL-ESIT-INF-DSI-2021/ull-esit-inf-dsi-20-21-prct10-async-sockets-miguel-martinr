@@ -2,8 +2,6 @@ import { NotesManagerClient } from '../../src/Client/NotesManagerClient';
 import 'mocha';
 import { expect } from 'chai';
 import { EventEmitter } from 'events';
-import * as net from 'net';
-import { write } from 'node:fs';
 import { RequestType } from '../../src/helpers';
 
 
@@ -65,6 +63,6 @@ describe('NotesManagerClient', () => {
     }, {emitRequestSent: true});
   });
 
-  
+
 
 });
