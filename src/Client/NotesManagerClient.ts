@@ -1,5 +1,5 @@
 import { RequestType } from '../helpers';
-import EventEmitter = require('events');
+import { EventEmitter } from 'events';
 
 import { Timer } from './Timer';
 import { fail } from '../helpers';
@@ -23,17 +23,44 @@ export type ProcessRequestOptions = {
  */
 export class NotesManagerClient extends EventEmitter {
   private timer: Timer;
-
+  private connection: EventEmitter;
   /**
    * 
    * @param {EventEmitter} connection Client connection
    */
-  constructor(private connection: EventEmitter) {
+  constructor(timeoutLimit: number = 2000) {
     super();
     this.timer = new Timer();
-    this.setHandlers(this.connection);
+    
+    /**
+     * Every time a request is sent, timer is started.
+     */
+    this.on('requestSent', (req) => {
+      this.timer.start(timeoutLimit);
+    })
+
+    /**
+     * Every time a response is received timer is stopped
+     */
+    this.on('response', () => {
+      this.timer.stop();
+    });
+
+    /**
+     * When timer timesout a `timeout` event is emitted
+     */
+    this.timer.on('timeout', () => {
+      this.emit('timeout', this.connection);
+    })
+
+    this.connect(new EventEmitter());
   }
 
+
+  connect(newConnection: EventEmitter) {
+    this.connection = newConnection;
+    this.setHandlers(this.connection);
+  }
 
   /**
    * Sets handlers for current connection
@@ -55,18 +82,6 @@ export class NotesManagerClient extends EventEmitter {
         incomingResponse = '';
       }
     });
-
-    this.on('requestSent', (req) => {
-      this.timer.start(2000);
-    })
-
-    this.on('response', () => {
-      this.timer.stop();
-    });
-
-    this.timer.on('timeout', () => {
-      this.emit('timeout', this.connection);
-    })
 
   }
 

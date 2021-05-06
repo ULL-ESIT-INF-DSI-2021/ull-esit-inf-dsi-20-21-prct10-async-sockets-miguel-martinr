@@ -9,6 +9,14 @@ import { fail } from '../helpers';
 
 const sendRequest = (chunk: string, connection: net.Socket) => connection.write(chunk);
 
+const client = new NotesManagerClient();
+
+client.on('timeout', (connection: net.Socket) => {
+  console.log(fail(`Timeout! Server took too long to respond`));
+  connection.end();
+});
+
+
 
 yargs
   .scriptName('notes-app')
@@ -53,7 +61,7 @@ yargs.command({
 
       if (!Note.checkColor(argv.color)) throw new InvalidColor(argv.color);
 
-      const client = new NotesManagerClient(net.connect(argv.port));
+      client.connect(net.connect(argv.port));
       client.processRequest({
         type: 'add',
         username: argv.username,
@@ -95,7 +103,7 @@ yargs.command({
     if (typeof argv.username === 'string' && typeof argv.title === 'string'
       && typeof argv.port === 'number') {
       
-      const client = new NotesManagerClient(net.connect(argv.port));
+      client.connect(net.connect(argv.port));
       client.processRequest({
         type: 'remove',
         username: argv.username,
@@ -155,7 +163,7 @@ yargs.command({
         newColor: argv.newColor,
       };
 
-      const client = new NotesManagerClient(net.connect(argv.port));
+      client.connect(net.connect(argv.port));
       client.processRequest({
         type: 'edit',
         username: argv.username,
@@ -190,20 +198,21 @@ yargs.command({
   handler(argv) {
     if (typeof argv.username === 'string' && typeof argv.port === 'number') {
 
-      const client = new NotesManagerClient(net.connect(argv.port));
+      
+      client.connect(net.connect(argv.port));
       client.processRequest({
         type: 'list',
         username: argv.username,
       }, sendRequest);
 
       client.on('response', (res) => {
-        res.output.forEach((noteTitle: string) => console.log(noteTitle));
+        if (res.success) {
+          res.output.forEach((noteTitle: string) => console.log(noteTitle));
+        } else {
+          console.log(res.output);
+        }
       });
 
-      client.on('timeout', (connection: net.Socket) => {
-        console.log(fail(`Timeout! Server took too long to respond`));
-        connection.end();
-      })
     }
   },
 });
@@ -234,7 +243,7 @@ yargs.command({
     if (typeof argv.username === 'string' && typeof argv.title === 'string'
       && typeof argv.port === 'number') {
 
-      const client = new NotesManagerClient(net.connect(argv.port));
+      client.connect(net.connect(argv.port));
       client.processRequest({
         type: 'read',
         username: argv.username,
