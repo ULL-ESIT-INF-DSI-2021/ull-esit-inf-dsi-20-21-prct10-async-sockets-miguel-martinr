@@ -1,6 +1,7 @@
 import { RequestType, fail } from '../helpers';
 import { EventEmitter } from 'events';
 import { Timer } from './Timer';
+import { ConnnectionError } from '../Errors';
 
 
 
@@ -67,8 +68,9 @@ export class NotesManagerClient extends EventEmitter {
   setHandlers(connection: EventEmitter) {
     // Error handler
     connection.on('error', (err) => {
-      console.log(fail(`There has been an error: ${err.message}`));
-      process.exit(-1);
+      let message = '';
+      if (err && err.message) message = ': ' + err.message; 
+      this.emit('error', new ConnnectionError(message));
     });
 
     // Data handler (emits a 'response' event when a complete response has been received)

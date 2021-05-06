@@ -3,6 +3,8 @@ import 'mocha';
 import { expect } from 'chai';
 import { EventEmitter } from 'events';
 import { RequestType } from '../../src/helpers';
+import { assert } from 'node:console';
+import { ConnnectionError } from '../../src/Errors';
 
 
 describe('NotesManagerClient', () => {
@@ -63,6 +65,20 @@ describe('NotesManagerClient', () => {
     }, {emitRequestSent: true});
   });
 
+
+  it('Should emit an error event with a ConnectionError object when connection emits an error event', (done) => {
+    const socket = new EventEmitter();
+    const client = new NotesManagerClient();
+
+    client.connect(socket);
+    
+    client.on('error', (err) => {
+      expect(err instanceof ConnnectionError).to.be.true;
+      done();
+    });
+
+    socket.emit('error');
+  });
 
 
 });
