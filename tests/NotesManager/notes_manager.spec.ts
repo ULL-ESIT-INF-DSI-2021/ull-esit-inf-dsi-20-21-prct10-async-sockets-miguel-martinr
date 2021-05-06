@@ -1,10 +1,10 @@
 import 'mocha';
 import * as fs from 'fs';
 import { expect } from 'chai';
-import { NotesManager } from '../src/notes_manager';
-import { Note } from '../src/note';
-import { KnownColors } from '../src/Interfaces/colored';
-import { InvalidColor, InvalidNote, InvalidUsernameError, RepeatedNoteError } from '../src/Errors';
+import { NotesManager } from '../../src/NotesManager/notes_manager';
+import { Note } from '../../src/NotesManager/note';
+import { KnownColors } from '../../src/NotesManager/Interfaces/colored';
+import { InvalidColor, InvalidNote, InvalidUsernameError, RepeatedNoteError } from '../../src/NotesManager/Errors';
 
 const chai = require('chai');
 const deepEqualInAnyOrder = require('deep-equal-in-any-order');

@@ -1,7 +1,7 @@
 import 'mocha';
 import { expect } from 'chai';
-import { Note } from '../src/note';
-import { KnownColors } from '../src/Interfaces/colored';
+import { Note } from '../../src/NotesManager/note';
+import { KnownColors } from '../../src/NotesManager/Interfaces/colored';
 
 describe('Note tests', () => {
   it('It can be instanciated', () => {

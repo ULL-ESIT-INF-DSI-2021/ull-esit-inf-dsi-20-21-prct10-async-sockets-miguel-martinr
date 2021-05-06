@@ -102,7 +102,7 @@ export class NotesManagerClient extends EventEmitter {
       cb(chunk, this.connection);
     }
 
-    opts.emitRequestSent ? this.emit('requestSent', req) : true;
+    opts.emitRequestSent ? this.emit('requestSent', req) : null;
   }
   
 }
