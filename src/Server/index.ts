@@ -6,7 +6,8 @@ import chalk = require("chalk");
 
 const port = parseInt(process.argv[2]) || 5510;
 
-const server = new NotesManagerServer((chunk: string, connection: net.Socket) => connection.write(chunk));
+const server = new NotesManagerServer((chunk: string, connection: net.Socket) => connection.write(chunk),
+  (connection: net.Socket) => connection.end());
 
 const errorHandler = (err: BasicError) => {
   console.log(err.toString());

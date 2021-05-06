@@ -14,7 +14,7 @@ const client = new NotesManagerClient();
 // Client handlers
 client.on('timeout', (connection: net.Socket) => {
   console.log(fail(`Timeout! Server took too long to respond`));
-  connection.end();
+  process.exit(-1);
 });
 
 client.on('error', (err) => {
@@ -199,13 +199,20 @@ yargs.command({
       demandOption: false,
       default: 5510,
       type: 'number'
-    }
+    },
+    host: {
+      describe: 'Server host',
+      demandOption: false,
+      default: '127.0.0.1',
+      type: 'string',
+    },
   },
   handler(argv) {
-    if (typeof argv.username === 'string' && typeof argv.port === 'number') {
+    if (typeof argv.username === 'string' && typeof argv.port === 'number'
+      && typeof argv.host === 'string') {
 
       
-      client.connect(net.connect(argv.port));
+      client.connect(net.connect(argv.port, argv.host));
       client.processRequest({
         type: 'list',
         username: argv.username,
