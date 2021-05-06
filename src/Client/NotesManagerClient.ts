@@ -1,4 +1,4 @@
-import { RequestType, fail } from '../helpers';
+import { RequestType } from '../helpers';
 import { EventEmitter } from 'events';
 import { Timer } from './Timer';
 import { ConnnectionError } from '../Errors';

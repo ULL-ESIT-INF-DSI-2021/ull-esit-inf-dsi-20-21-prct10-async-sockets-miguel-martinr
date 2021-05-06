@@ -2,6 +2,7 @@ import { NotesManagerServer } from "./NotesManagerServer";
 import * as net from 'net';
 import { warn } from "../helpers";
 import { BasicError } from "../Errors/basic_error";
+import chalk = require("chalk");
 
 const port = parseInt(process.argv[2]) || 5510;
 
@@ -14,7 +15,12 @@ const errorHandler = (err: BasicError) => {
 
 server.on('serverError', errorHandler);
 server.on('connectionError', errorHandler)
-server.on('request', (req) => console.log(`Request received: ${JSON.stringify(req)}`));
+server.on('responseSent', (res, req) => {
+  console.log(warn('Transaction complete:\n') +
+  chalk.blue('\n  Req:') + JSON.stringify(req) +
+  chalk.green('\n  Res:') + JSON.stringify(res)
+  );
+});
 
 
 const serverEndPoint = net.createServer((connection) => server.setConnectionHandlers(connection));

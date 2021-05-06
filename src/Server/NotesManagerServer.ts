@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events';
 import { NotesManager } from '../NotesManager/notes_manager';
 import { Note } from '../NotesManager/note';
-import { fail, RequestType, ResponseType, success, warn } from '../helpers';
+import { fail, RequestType, ResponseType, success } from '../helpers';
 import { ServerConnnectionError } from '../Errors/server_connection_error';
 import { ConnnectionError } from '../Errors';
 
@@ -27,7 +27,7 @@ export class NotesManagerServer extends EventEmitter {
     // Handles a 'request' event for each connection
     this.on('request', (req, connection) => {
       let response = this.processRequest(req);
-      this.sendResponse(connection, response);
+      this.sendResponse(connection, response, req);
       connection.end();
     });
 
@@ -84,7 +84,7 @@ export class NotesManagerServer extends EventEmitter {
    * @param {ResponseType} res 
    */
 
-  sendResponse(connection: EventEmitter, res: ResponseType) {
+  sendResponse(connection: EventEmitter, res: ResponseType, req?: RequestType) {
     const splittedRes = JSON.stringify(res).split('');
 
     while (splittedRes.length > 0) {
@@ -93,7 +93,7 @@ export class NotesManagerServer extends EventEmitter {
       this.sendMethod(chunk, connection);
     }
 
-    this.emit('responseSent', res);
+    this.emit('responseSent', res, req);
   }
 
   /**
