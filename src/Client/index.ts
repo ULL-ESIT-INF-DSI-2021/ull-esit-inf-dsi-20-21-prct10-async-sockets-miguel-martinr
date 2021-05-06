@@ -11,6 +11,7 @@ const sendRequest = (chunk: string, connection: net.Socket) => connection.write(
 
 const client = new NotesManagerClient();
 
+// Client handlers
 client.on('timeout', (connection: net.Socket) => {
   console.log(fail(`Timeout! Server took too long to respond`));
   connection.end();
