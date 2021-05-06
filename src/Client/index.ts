@@ -110,13 +110,19 @@ yargs.command({
       demandOption: false,
       default: 5510,
       type: 'number'
+    },
+    host: {
+      describe: 'Server host',
+      demandOption: false,
+      default: '127.0.0.1',
+      type: 'string',
     }
   },
   handler(argv) {
     if (typeof argv.username === 'string' && typeof argv.title === 'string'
-      && typeof argv.port === 'number') {
+      && typeof argv.port === 'number' && typeof argv.host === 'string') {
       
-      client.connect(net.connect(argv.port));
+      client.connect(net.connect(argv.port, argv.host));
       client.processRequest({
         type: 'remove',
         username: argv.username,
@@ -165,18 +171,24 @@ yargs.command({
       demandOption: false,
       default: 5510,
       type: 'number'
+    },
+    host: {
+      describe: 'Server host',
+      demandOption: false,
+      default: '127.0.0.1',
+      type: 'string',
     }
   },
   handler(argv) {
     if (typeof argv.username === 'string' && typeof argv.title === 'string'
-      && typeof argv.port === 'number') {
+      && typeof argv.port === 'number' && typeof argv.host === 'string') {
       const params = {
         newTitle: argv.newTitle,
         newBody: argv.newBody,
         newColor: argv.newColor,
       };
 
-      client.connect(net.connect(argv.port));
+      client.connect(net.connect(argv.port, argv.host));
       client.processRequest({
         type: 'edit',
         username: argv.username,
@@ -257,13 +269,19 @@ yargs.command({
       demandOption: false,
       default: 5510,
       type: 'number'
+    },
+    host: {
+      describe: 'Server host',
+      demandOption: false,
+      default: '127.0.0.1',
+      type: 'string',
     }
   },
   handler(argv) {
     if (typeof argv.username === 'string' && typeof argv.title === 'string'
-      && typeof argv.port === 'number') {
+      && typeof argv.port === 'number' && typeof argv.host === 'string') {
 
-      client.connect(net.connect(argv.port));
+      client.connect(net.connect(argv.port, argv.host));
       client.processRequest({
         type: 'read',
         username: argv.username,
