@@ -3,7 +3,6 @@ import 'mocha';
 import { expect } from 'chai';
 import { EventEmitter } from 'events';
 import { RequestType } from '../../src/helpers';
-import { assert } from 'node:console';
 import { ConnnectionError } from '../../src/Errors';
 
 

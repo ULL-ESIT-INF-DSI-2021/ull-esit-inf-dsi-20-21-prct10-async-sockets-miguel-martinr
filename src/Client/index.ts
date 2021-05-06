@@ -16,6 +16,11 @@ client.on('timeout', (connection: net.Socket) => {
   connection.end();
 });
 
+client.on('error', (err) => {
+  console.log(err.toString());
+  process.exit(-1);
+});
+
 
 
 yargs

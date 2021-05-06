@@ -1,8 +1,9 @@
-import * as net from 'net';
 import { EventEmitter } from 'events';
 import { NotesManager } from '../NotesManager/notes_manager';
 import { Note } from '../NotesManager/note';
 import { fail, RequestType, ResponseType, success, warn } from '../helpers';
+import { ServerConnnectionError } from '../Errors/server_connection_error';
+import { ConnnectionError } from '../Errors';
 
 
 
@@ -11,53 +12,68 @@ import { fail, RequestType, ResponseType, success, warn } from '../helpers';
  */
 export class NotesManagerServer extends EventEmitter {
 
-  private server: net.Server;
+
   private notesManager: NotesManager;
-  
-  constructor() {
+  private server: EventEmitter;
+
+  /**
+   * 
+   * @param {(chunk: string, connection: EventEmitter) => void)} sendMethod Defines how data chunks will be sent on each connection
+   */
+  constructor(private sendMethod: (chunk: string, connection: EventEmitter) => void) {
     super();
     this.notesManager = new NotesManager();
-    this.server = net.createServer((connection) => {
-      
-      // Handle a possible error on connection
-      connection.on('error', (err) => {
-        console.log(fail(`There has been an error: ${err.message}`));
-        process.exit(-1);
-      });
 
-      
-      /**
-       * Handles received data for getting a complete RequestType (emits a 'request' event passing
-       * the request and the connection)
-       */
-      let incomingRequest = '';
-      connection.on('data', (chunk) => {
-        incomingRequest += chunk;
-        
-        if (incomingRequest[incomingRequest.length - 1] === '\n') {      
-          this.emit('request', JSON.parse(incomingRequest), connection);
-          incomingRequest = '';
-        }
-      });
-    });  
-    
     // Handles a 'request' event for each connection
     this.on('request', (req, connection) => {
-      console.log(`Request received: ${JSON.stringify(req)}`);
       let response = this.processRequest(req);
       this.sendResponse(connection, response);
       connection.end();
     });
 
+    
+  }
+
+  listen(newServer: EventEmitter, endingProcess?: (oldServer: EventEmitter) => void, startingProcess?: (server: EventEmitter) => void) {
+    if (endingProcess) endingProcess(this.server);
+    this.server = newServer;
+    this.setServerHandlers(this.server);
+    if (startingProcess) startingProcess(this.server);
+  }
+
+  setServerHandlers(server: EventEmitter) {
+    // Server Error handling
+    server.on('error', (err) => {
+      let message = '';
+      if (err && err.message) message = ': ' + err.message;
+      this.emit('serverError', new ServerConnnectionError(message));
+    });
   }
 
   /**
-   * Starts listenning on a especified port
-   * @param {number} port Port to listen
+   * Sets connection handlers
+   * @param {EventEmitter} connection 
    */
-  listen(port: number) {
-    this.server.listen(port, () => {
-      console.log(warn(`NotesManager server is listenning on ${port}`));
+  setConnectionHandlers(connection: EventEmitter) {
+    // Handle a possible error on connection
+    connection.on('error', (err) => {
+      let message = '';
+      if (err && err.message) message = ': ' + err.message;
+      this.emit('connectionError', new ConnnectionError(message));
+    });
+
+    /**
+     * Handles received data for getting a complete RequestType (emits a 'request' event passing
+     * the request and the connection)
+     */
+    let incomingRequest = '';
+    connection.on('data', (chunk) => {
+      incomingRequest += chunk;
+
+      if (incomingRequest[incomingRequest.length - 1] === '\n') {
+        this.emit('request', JSON.parse(incomingRequest), connection);
+        incomingRequest = '';
+      }
     });
   }
 
@@ -67,14 +83,17 @@ export class NotesManagerServer extends EventEmitter {
    * @param {netSocket} connection 
    * @param {ResponseType} res 
    */
-  sendResponse(connection: net.Socket, res: ResponseType) {
+
+  sendResponse(connection: EventEmitter, res: ResponseType) {
     const splittedRes = JSON.stringify(res).split('');
 
-    while(splittedRes.length > 0) {
+    while (splittedRes.length > 0) {
       let chunk = splittedRes.splice(0, 51).join('');
       chunk += splittedRes.length === 0 ? '\n' : '';
-      connection.write(chunk);
+      this.sendMethod(chunk, connection);
     }
+
+    this.emit('responseSent', res);
   }
 
   /**
