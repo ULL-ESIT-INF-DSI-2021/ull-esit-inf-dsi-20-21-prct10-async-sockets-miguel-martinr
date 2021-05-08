@@ -13,11 +13,6 @@ export type ProcessRequestOptions = {
 }
 
 
-
-
-
-
-
 /**
  * A class that manages a client connection for NotesManager service 
  */
@@ -27,11 +22,13 @@ export class NotesManagerClient extends EventEmitter {
   /**
    * 
    * @param {EventEmitter} connection Client connection
+   * @param {number} timeoutLimit Minimum ammount of time a client will wait for a server response before emitting a 
+   * `timeout`event
    */
   constructor(timeoutLimit: number = 2000) {
     super();
     this.timer = new Timer();
-    
+
     /**
      * Every time a request is sent, timer is started.
      */
@@ -47,7 +44,7 @@ export class NotesManagerClient extends EventEmitter {
     });
 
     /**
-     * When timer timesout a `timeout` event is emitted
+     * When timer times out a `timeout` event is emitted
      */
     this.timer.on('timeout', () => {
       this.emit('timeout', this.connection);
@@ -56,20 +53,23 @@ export class NotesManagerClient extends EventEmitter {
     this.connect(new EventEmitter());
   }
 
-
+  /**
+   * Updates connection
+   * @param newConnection 
+   */
   connect(newConnection: EventEmitter) {
     this.connection = newConnection;
     this.setHandlers(this.connection);
   }
 
   /**
-   * Sets handlers for current connection
+   * Sets handlers for a connection
    */
   setHandlers(connection: EventEmitter) {
     // Error handler
     connection.on('error', (err) => {
       let message = '';
-      if (err && err.message) message = ': ' + err.message; 
+      if (err && err.message) message = ': ' + err.message;
       this.emit('error', new ConnnectionError(message));
     });
 
@@ -90,11 +90,11 @@ export class NotesManagerClient extends EventEmitter {
    * It splits the request into 50 character chunks and the callback is executed passing
    * each of those chunks and the client connection.
    * @param {RequestType} request Request to send
-   * @param {(chunk: string, connection: EventEmitter) => void} cb Callback for each data chunk
+   * @param {(chunk: string, connection: EventEmitter) => void} cb Callback for each data chunk (isually a sending method)
    * @param {ProcessRequestOptions} opts
    */
-  processRequest(req: RequestType,  cb: (chunk: string, connection: EventEmitter) => void, 
-  opts: ProcessRequestOptions = {emitRequestSent: true}) {
+  processRequest(req: RequestType, cb: (chunk: string, connection: EventEmitter) => void,
+    opts: ProcessRequestOptions = { emitRequestSent: true }) {
 
     let stringifiedRequest = JSON.stringify(req).split('');
     while (stringifiedRequest.length > 0) {
@@ -106,7 +106,6 @@ export class NotesManagerClient extends EventEmitter {
     if (opts.emitRequestSent) this.emit('requestSent', req);
 
   }
-  
 }
 
 

@@ -12,14 +12,17 @@ import { ConnnectionError } from '../Errors';
  */
 export class NotesManagerServer extends EventEmitter {
 
-
+  // NotesManager app
   private notesManager: NotesManager;
-  private server: EventEmitter;
+
+  // Server endpoint
+  private endpoint: EventEmitter;
 
 /**
  * 
  * @param {(chunk: string, connection: EventEmitter) => void)} sendingMethod Defines how data chunks will be sent on each connection
- * @param {(connection: EventEmitter) => void} endingMethod Defines an action a connection must perform for terminating.
+ * @param {(connection: EventEmitter) => void} endingMethod Defines an action a client connection must perform before ending. For example,
+ * for a net.Socket connection could be `connection.end()`
  */
   constructor(private sendingMethod: (chunk: string, connection: EventEmitter) => void,
     private endingMethod?: (connection: EventEmitter) => void) {
@@ -38,16 +41,26 @@ export class NotesManagerServer extends EventEmitter {
     
   }
 
-  listen(newServer: EventEmitter, endingProcess?: (oldServer: EventEmitter) => void, startingProcess?: (server: EventEmitter) => void) {
-    if (endingProcess) endingProcess(this.server);
-    this.server = newServer;
-    this.setServerHandlers(this.server);
-    if (startingProcess) startingProcess(this.server);
+  /**
+   * Starts listenning on a specific endpoint
+   * @param {EventEmitter} endPoint New endpoint
+   * @param {(oldEndpoint: EventEmitter) => void} endingProcess (Optional) Action performed by the old endpoint before shifting it
+   * @param {(endPoint: EventEmitter) => void} startingProcess (Optional) Action performed by new endpoint right after commiting the shift
+   */
+  listen(endPoint: EventEmitter, endingProcess?: (oldEndpoint: EventEmitter) => void, startingProcess?: (server: EventEmitter) => void) {
+    if (endingProcess) endingProcess(this.endpoint);
+    this.endpoint = endPoint;
+    this.setEndpointHandlers(this.endpoint);
+    if (startingProcess) startingProcess(this.endpoint);
   }
 
-  setServerHandlers(server: EventEmitter) {
+  /**
+   * Sets endpoint\'s handlers
+   * @param {EventEmitter} endpoint 
+   */
+  setEndpointHandlers(endpoint: EventEmitter) {
     // Server Error handling
-    server.on('error', (err) => {
+    endpoint.on('error', (err) => {
       let message = '';
       if (err && err.message) message = ': ' + err.message;
       this.emit('serverError', new ServerConnnectionError(message));
@@ -67,7 +80,7 @@ export class NotesManagerServer extends EventEmitter {
     });
 
     /**
-     * Handles received data for getting a complete RequestType (emits a 'request' event passing
+     * Handles received data for getting a complete request (RequestType) (emits a 'request' event passing
      * the request and the connection)
      */
     let incomingRequest = '';
@@ -83,11 +96,12 @@ export class NotesManagerServer extends EventEmitter {
 
   /**
    * Sends a ResponseType on a especified connection. It sends that response by stringifying it
-   * and splitting it in 50 characters chunks, last one has a '\n' at last index.
-   * @param {netSocket} connection 
+   * and splitting it in 50 characters chunks, last one has a '\n' at last index. The request is sent 
+   * by applying `sendingMethod` to each one of the data chunks
+   * @param {EventEmitter} connection 
    * @param {ResponseType} res 
+   * @param {RequestType} req 
    */
-
   sendResponse(connection: EventEmitter, res: ResponseType, req?: RequestType) {
     const splittedRes = JSON.stringify(res).split('');
 

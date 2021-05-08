@@ -1,6 +1,8 @@
 import {EventEmitter} from 'events';
 
-
+/**
+ * 
+ */
 export class Timer extends EventEmitter {
   
   private timer: NodeJS.Timeout;
