@@ -3,6 +3,25 @@
 [![Coverage Status](https://coveralls.io/repos/github/ULL-ESIT-INF-DSI-2021/ull-esit-inf-dsi-20-21-prct10-async-sockets-miguel-martinr/badge.svg?branch=master)](https://coveralls.io/github/ULL-ESIT-INF-DSI-2021/ull-esit-inf-dsi-20-21-prct10-async-sockets-miguel-martinr?branch=master)
 # [**Ver en Github**](https://github.com/ULL-ESIT-INF-DSI-2021/ull-esit-inf-dsi-20-21-prct10-async-sockets-miguel-martinr)
 # [**Github page**](https://ull-esit-inf-dsi-2021.github.io/ull-esit-inf-dsi-20-21-prct10-async-sockets-miguel-martinr/)
+
+## **Tabla de contenidos**
+
+* [**Introducción**](./#introducción)
+* [**Comunicaciones**](./#comunicaciones)
+* [**Cliente**](./#cliente)
+  * [**Clase NotesManagerClient**](./#clase-notesmanagerclient)
+  * [**Uso**](./#uso)
+* [**Servidor**](./#servidor)
+  * [**Listen**](./#listen)
+  * [**Handlers del endpoint del servidor**](./#handlers-del-endpoint-del-servidor)
+  * [**Handlers para conexiones con el cliente**](./#handlers-para-conexiones-con-el-cliente)
+  * [**Enviar respuesta a un cliente**](./#enviar-respuesta-a-un-cliente)
+  * [**Procesar una petición**](./#procesar-una-petición)
+  * [**Uso**](./#uso-1)
+* [**Testing**](./#testing)
+  
+  
+
 ## **Introducción**
 A continuación abordaremos el desarrollo de una aplicación para la gestión de notas que funcione bajo el modelo cliente-servidor. Haremos uso de un [**Gestor de Notas**](https://ull-esit-inf-dsi-2021.github.io/ull-esit-inf-dsi-20-21-prct08-filesystem-notes-app-miguel-martinr/) desarrollado anteriormente y nos ocuparemos principalmente de emplear sockets asíncronos y la emisión de eventos para crear un servidor y un cliente.
 
@@ -88,59 +107,59 @@ Como podemos observar, en caso de detectar un error en el cliente, la petición 
 
 También definiremos los handlers para los eventos `timeout` y `error` emitidos por el cliente:
 * En caso de agotarse el tiempo de espera informaremos al usuario y terminaremos el proceso.  
-  ```typescript
-  client.on('timeout', (connection: net.Socket) => {
-    console.log(fail(`Timeout! Server took too long to respond`));
-    process.exit(-1);
-  });
-  ```
+```typescript
+client.on('timeout', (connection: net.Socket) => {
+  console.log(fail(`Timeout! Server took too long to respond`));
+  process.exit(-1);
+});
+```
 * En caso de error imprimiremos el mensaje de error y terminaremos el proceso.  
-  ```typescript
-  client.on('error', (err) => {
-    console.log(err.toString());
-    process.exit(-1);
-  });
-  ```
+```typescript
+client.on('error', (err) => {
+  console.log(err.toString());
+  process.exit(-1);
+});
+```
   
 
 Una vez hemos parseado los comandos introducidos por el usuario, conectaremos con el servidor. Para ello, todos los comandos del cliente permiten especificar el puerto y host del servidor mediante las opciones `--port` y `--host` respectivamente. Donde `port` es un número entero y `host` es una string. Los valores por defecto son el puerto `5510` y el host `127.0.0.1`.
 
 * **Conexión con el servidor**
 ```typescript
-      client.connect(net.connect(argv.port, argv.host)); // Conectamos con el servidor
+  client.connect(net.connect(argv.port, argv.host));  Conectamos con el servidor
 ```
 
 * **Recibir respuesta del servidor**  
 A continuación, adjuntaremos un handler al evento `response` del cliente, dicho handler puede depender del tipo de respuesta que se espera, por ejemplo: En el caso del comando list se espera recibir un array de strings que contiene los títulos de las notas listadas, por lo que debemos verificar que la petición ha sido resuelta correctamente :
 
 ```typescript
-      client.on('response', (res) => {
-        if (res.success) {
-          res.output.forEach((noteTitle: string) => console.log(noteTitle));
-        } else {
-          console.log(res.output);
-        }
-      });
+  client.on('response', (res) => {
+    if (res.success) {
+      res.output.forEach((noteTitle: string) => consollog(noteTitle));
+    } else {
+      console.log(res.output);
+    }
+  });
 ```
 
 Mientras que para el resto de comandos basta con imprimir la salida por consola:  
 
 ```typescript
-      client.on('response', (res) => {
-        console.log(res.output);
-      });
+  client.on('response', (res) => {
+    console.log(res.output);
+  });
 ```
 
 
 * **Enviar petición**  
 Por último, emplearemos el método `processRequest` del cliente pasándole la petición formada con los parámetros introducidos por el usuario y un callback encargado de enviar la infomación a través del socket:  
 ```typescript
-      client.processRequest({
-        type: 'edit',
-        username: argv.username,
-        title: argv.title,
-        params: params,
-      }, (chunk: string, connection: net.Socket) => connection.write(chunk));
+  client.processRequest({
+    type: 'edit',
+    username: argv.username,
+    title: argv.title,
+    params: params,
+  }, (chunk: string, connection: net.Socket) => connection.write(chunk));
 ```
 
 
@@ -153,15 +172,13 @@ El constructor recibirá como argumentos:
 
 Además, incializará el gestor de notas (`NotesManager`) y también adjuntará un handler al evento `request`. Dicho handler se encargará de procesar la petición, eviarla a la conexión de donde ha venido la petición y, si está definido, invocar al `endingMethod` para cerrar la conexión con el cliente:  
 ```typescript
-    this.notesManager = new NotesManager();
-
-    // Handles a 'request' event for each connection
-    this.on('request', (req, connection) => {
-      let response = this.processRequest(req);
-      this.sendResponse(connection, response, req);
-
-      if (this.endingMethod) this.endingMethod(connection);
-    });
+  this.notesManager = new NotesManager();
+  // Handles a 'request' event for each connection
+  this.on('request', (req, connection) => {
+    let response = this.processRequest(req);
+    this.sendResponse(connection, response, req);
+    if (this.endingMethod) this.endingMethod(connection);
+  });
 ```
 
 ### **Listen**
@@ -191,15 +208,14 @@ El método `setConnectionHandlers` recibe un EventEmitter y le adjunta los sigui
 * Para el evento `error` el servidor emite un evento `connectionError` junto a un objeto `ConnectionError`.
 * Para el evento `data` se guarda el trozo de dato en un buffer y cuando el último caracter es un salto de línea se emite un evento `request` junto a la request parseada y la conexión de la que provino:
 ```typescript 
-    let incomingRequest = '';
-    connection.on('data', (chunk) => {
-      incomingRequest += chunk;
-
-      if (incomingRequest[incomingRequest.length - 1] === '\n') {
-        this.emit('request', JSON.parse(incomingRequest), connection);
-        incomingRequest = '';
-      }
-    });
+  let incomingRequest = '';
+  connection.on('data', (chunk) => {
+    incomingRequest += chunk;
+    if (incomingRequest[incomingRequest.length - 1] === '\n') {
+      this.emit('request', JSON.parse(incomingRequest), connection);
+      incomingRequest = '';
+    }
+  });
 ```
 
 ### **Enviar respuesta a un cliente**
@@ -232,46 +248,46 @@ El puerto por defecto en el que funcionará nuestro server sera el `5510`, aunqu
 
 Definiremos nuestro objeto de la clase `NotesManagerServer` pasándole como argumentos un `sendingMethod` que escribe un trozo de dato en un socket y un `endingMethod` que se encarga de cerrar la conexión con el cliente.  
 ```typescript
-const server = new NotesManagerServer((chunk: string, connection: net.Socket) => connection.write(chunk),
+  const server = new NotesManagerServer((chunk: string, connection: net.Socket) => connection.write(chunk),
   (connection: net.Socket) => connection.end());
 ```
 
 
 Además, definiremos los handlers para los erroes (errores tanto del cliente como del servidor):  
 ```typescript
-const errorHandler = (err: BasicError) => {
-  console.log(err.toString());
-  process.exit(-1);
-};
-server.on('serverError', errorHandler);
-server.on('connectionError', errorHandler)
+  const errorHandler = (err: BasicError) => {
+    console.log(err.toString());
+    process.exit(-1);
+  };
+  server.on('serverError', errorHandler);
+  server.on('connectionError', errorHandler)
 ```
 
 Y también un handler para cuando se ha enviado una respuesta (evento `requestSent`) que se encargue de imprimir por pantalla la petición y la respuesta:  
 ```typescript
-server.on('responseSent', (res, req) => {
-  console.log(warn('Transaction complete:\n') +
-    chalk.blue('\n  Req:') + JSON.stringify(req) +
-    chalk.green('\n  Res:') + JSON.stringify(res)
-  );
-});
+  server.on('responseSent', (res, req) => {
+    console.log(warn('Transaction complete:\n') +
+      chalk.blue('\n  Req:') + JSON.stringify(req) +
+      chalk.green('\n  Res:') + JSON.stringify(res)
+    );
+  });
 ```
 
 Para poner a funcionar nuestro servidor necesitamos un endpoint en el que escuchar, en nuestro caso será un objeto `net.Server`. Para crearlo pasaremos un handler al método `net.createServer` que se encargue de aplicar el método `NotesManagerServer.setConnectionHandlers` sobre la conexión que recibe el callback como argumento:  
 
 ```typescript
-const serverEndPoint = net.createServer((connection) => server.setConnectionHandlers(connection));
+  const serverEndPoint = net.createServer((connection) => server.setConnectionHandlers(connection));
 ```
 
 Una vez tenemos un endPoint configurado podemos invocar el método `NotesManagerServer.listen` pasándole como parámetros el endpoint recién creado, un `endingMethod` que se encargue de cerrar el viejo endpoint (si existía) y un `startingProcess` que se encargue de invocar el método `net.Server.listen` del endpoint sobre el puerto especificado:
 
 ```typescript
-server.listen(serverEndPoint, (oldEndpoint: net.Server) => oldEndpoint?.close(), (endPoint: net.Server) => endPoint.listen(port, () => {
+  server.listen(serverEndPoint, (oldEndpoint: net.Server) => oldEndpoint?.close(), (endPoint: net.Server) => endPoint.listen(port, () => {
   console.log(warn(`NotesManager server is running on port ${port}`));
-}));
+  }));
 ```
 
-Y nuestro servdiro ya estaría listo para escuchar y responder peticiones:  
+Y nuestro servidor ya estaría listo para escuchar y responder peticiones:  
 
 ![Server Demo2](media://server-demo-2.gif)
   
@@ -283,3 +299,27 @@ A continuación, un ejemplo de uso de la aplicación con un servidor y dos clien
 * La terminal de la esquina inferior derecha es un cliente en otra máquina de la misma red local. Desde dicho cliente se ejecuta un script que añade notas al servidor.
 
 ![Server demo host](media://../media/demo-host.gif)
+
+## **Testing**
+
+Gracias a que las clases diseñadas son *wrappers*, se facilita el proceso de hacer pruebas unitarias, ya que podemos hacer pasar un objeto `EventEmitter` por un servidor o un cliente indistintitamente.
+
+Por ejemplo, para testear si un cliente puede procesar correctamente la respuesta de un servidor simplemente debemos crear un `EventEmitter`, conectar un cliente a dicho `EventEmitter` y emitir eventos `data` con los trozos de información que llevan la respuesta:  
+
+```typescript
+  it('Should emit a response event once it gets a complete response', (done) => {
+    const socket = new EventEmitter();
+    const client = new NotesManagerClient();
+
+    client.connect(socket);
+    client.on('response', (res) => {
+      expect(res).to.be.eql({ 'success': 'true', 'output': 'NoteOne', 'curr': 26 });
+      done();
+    });
+
+
+    socket.emit('data', '{"success": "true", "output": "NoteOne"');
+    socket.emit('data', ', "curr": 26}');
+    socket.emit('data', '\n');
+  });
+```
