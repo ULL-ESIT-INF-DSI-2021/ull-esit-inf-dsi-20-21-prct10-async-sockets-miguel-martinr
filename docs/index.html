@@ -104,12 +104,227 @@
 				<a href="#cliente" id="cliente" style="color: inherit; text-decoration: none;">
 					<h2><strong>Cliente</strong></h2>
 				</a>
-				<p>Partiremos del código utilizado en la aplicación principal del <a href="https://ull-esit-inf-dsi-2021.github.io/ull-esit-inf-dsi-20-21-prct08-filesystem-notes-app-miguel-martinr/"><strong>Gestor de Notas</strong></a> previamente desarrollado, ya que nuestro cliente se encargará de parsear las acciones por línea de comandos. Es decir, en caso de, por ejemplo, seleccionar un color no soportado, o introducir comandos no conocidos, la petición no se enviará sino que dicho error será capturado por el código cliente y se mostrará un mensaje informativo al usuario.</p>
-				<a href="#color-no-soportado" id="color-no-soportado" style="color: inherit; text-decoration: none;">
-					<h3><strong>Color no soportado</strong></h3>
+				<a href="#clase-notesmanagerclient" id="clase-notesmanagerclient" style="color: inherit; text-decoration: none;">
+					<h3><strong>Clase NotesManagerClient</strong></h3>
 				</a>
-				<p>Como podemos observar, en caso de detectar un error en el cliente, la petición no es enviada:</p>
-				<p><img src="media/non-sup-color.gif" alt="Color no soportado demo"></p>
+				<p>Desarrollaremos una clase que haga de <em>wrapper</em> de un socket. Se encargará de enviar peticiones al servidor y recibir sus respuestas.</p>
+				<p>Tendrá como atributos:</p>
+				<ul>
+					<li><code>timer</code>: Un temporizador utilizado para medir el tiempo que tarda en responder el servidor.</li>
+					<li><code>connection</code>: Objeto <code>EventEmitter</code> que representará, en este caso, el socket. Cumplir con el principio de inversión de dependencias nos permite testear más fácilmente nuestra clase, ya que podemos utilizar un EventEmitter como un server <em>falso</em> para producir artificalmente los eventos que esperamos.</li>
+				</ul>
+				<p>El constructor de nuestra clase recibe como argumento (opcional) los milisegundos que esperará por la respuesta de un servidor tras enviar una petición. Por defecto son 2000 milisegundos.</p>
+				<p>Además, adjunta los siguientes handlers:</p>
+				<ul>
+					<li>Cuando el cliente emite un evento <code>requestSent</code> (se ha enviado una petición) se inicia el timer.</li>
+					<li>Cuando el cliente emite un evento <code>response</code> (se ha recibido un arespuesta) se detiene el timer.</li>
+					<li>Cuando el timer emite un evento <code>timeout</code> (se ha agotado el tiempo de espera) se emite un evento <code>timeout</code></li>
+				</ul>
+				<p>Y por último, conecta nuestro cliente una nueva instancia de <code>EventEmitter</code>. </p>
+				<a href="#conectar-cliente" id="conectar-cliente" style="color: inherit; text-decoration: none;">
+					<h4><strong>Conectar cliente</strong></h4>
+				</a>
+				<p>Para conectar nuestro cliente a un Socket debemos utilizar el método <code>connect</code>. Dicho método recibe como parámetro un <code>EventEmitter</code>, que será el nuevo endpoint del cliente sobre el que emplearemos el método <code>setHandlers</code>.</p>
+				<p>El método <code>setHandlers</code> adjunta los siguientes handlers a los siguientes eventos sobre una conexión que se la pasa por parámetro:</p>
+				<ul>
+					<li>Cuando la conexión emita un evento <code>data</code>, se va guardando en un buffer, si el último caracter del buffer es un salto de línea se emite un evento <code>response</code> y se limpia el buffer.</li>
+					<li>Cuando la conexión emita un evento <code>error</code>, el cliente emite un evento <code>error</code> junto un objeto <code>ConnectionError</code>.</li>
+				</ul>
+				<a href="#procesar-y-enviar-una-petición" id="procesar-y-enviar-una-petición" style="color: inherit; text-decoration: none;">
+					<h4><strong>Procesar y enviar una petición</strong></h4>
+				</a>
+				<p>El método <code>processRequest</code> recibe como argumentos:</p>
+				<ul>
+					<li>Un objeto <code>RequestType</code>: La petición a enviar</li>
+					<li><code>cb</code>: Callback que recibe un <em>chunk</em> de, como máximo 50 caracteres y un <code>EventEmitter</code>.</li>
+					<li>opts: Un objeto del tipo <code>ProcessRequestOptions</code> que define las opciones para el método. Por defecto la opción <code>emitRequestSent</code> (indica si se debe emitir un evento <code>requestSent</code> tras enviar una petición) es verdadera.</li>
+				</ul>
+				<p>Se encarga de transformar la petición a una <code>string</code> en trozoa de, como máximo 50 caracteres, y aplicar el callback pasado por parámetro pasándole el trozo de string y la conexión del cliente.
+				<strong><em>Nota: en nuestro caso, dicho callback se encargará de enviar cada trozo de dato a través del socket del cliente con <code>connection.write(chunk)</code></em></strong></p>
+				<a href="#uso" id="uso" style="color: inherit; text-decoration: none;">
+					<h3><strong>Uso</strong></h3>
+				</a>
+				<p>Partiremos del código utilizado en la aplicación principal del <a href="https://ull-esit-inf-dsi-2021.github.io/ull-esit-inf-dsi-20-21-prct08-filesystem-notes-app-miguel-martinr/"><strong>Gestor de Notas</strong></a> previamente desarrollado, ya que nuestro cliente se encargará de parsear las acciones por línea de comandos. Es decir, en caso de, por ejemplo, seleccionar un color no soportado, o introducir comandos no conocidos, la petición no se enviará sino que dicho error será capturado por el código cliente y se mostrará un mensaje informativo al usuario.</p>
+				<ul>
+					<li><strong>Color no soportado</strong></li>
+				</ul>
+				<p><img src="media/non-sup-color.gif" alt="Color no soportado demo">  </p>
+				<p>Como podemos observar, en caso de detectar un error en el cliente, la petición no es enviada.</p>
+				<p>También definiremos los handlers para los eventos <code>timeout</code> y <code>error</code> emitidos por el cliente:</p>
+				<ul>
+					<li>En caso de agotarse el tiempo de espera informaremos al usuario y terminaremos el proceso.  <pre><code class="language-typescript"><span style="color: #24292E">client.</span><span style="color: #6F42C1">on</span><span style="color: #24292E">(</span><span style="color: #032F62">&#039;timeout&#039;</span><span style="color: #24292E">, (</span><span style="color: #E36209">connection</span><span style="color: #D73A49">:</span><span style="color: #24292E"> </span><span style="color: #6F42C1">net</span><span style="color: #24292E">.</span><span style="color: #6F42C1">Socket</span><span style="color: #24292E">) </span><span style="color: #D73A49">=&gt;</span><span style="color: #24292E"> {</span>
+<span style="color: #24292E">  console.</span><span style="color: #6F42C1">log</span><span style="color: #24292E">(</span><span style="color: #6F42C1">fail</span><span style="color: #24292E">(</span><span style="color: #032F62">`Timeout! Server took too long to respond`</span><span style="color: #24292E">));</span>
+<span style="color: #24292E">  process.</span><span style="color: #6F42C1">exit</span><span style="color: #24292E">(</span><span style="color: #D73A49">-</span><span style="color: #005CC5">1</span><span style="color: #24292E">);</span>
+<span style="color: #24292E">});</span>
+</code></pre>
+					</li>
+					<li>En caso de error imprimiremos el mensaje de error y terminaremos el proceso.  <pre><code class="language-typescript"><span style="color: #24292E">client.</span><span style="color: #6F42C1">on</span><span style="color: #24292E">(</span><span style="color: #032F62">&#039;error&#039;</span><span style="color: #24292E">, (</span><span style="color: #E36209">err</span><span style="color: #24292E">) </span><span style="color: #D73A49">=&gt;</span><span style="color: #24292E"> {</span>
+<span style="color: #24292E">  console.</span><span style="color: #6F42C1">log</span><span style="color: #24292E">(err.</span><span style="color: #6F42C1">toString</span><span style="color: #24292E">());</span>
+<span style="color: #24292E">  process.</span><span style="color: #6F42C1">exit</span><span style="color: #24292E">(</span><span style="color: #D73A49">-</span><span style="color: #005CC5">1</span><span style="color: #24292E">);</span>
+<span style="color: #24292E">});</span>
+</code></pre>
+					</li>
+				</ul>
+				<p>Una vez hemos parseado los comandos introducidos por el usuario, conectaremos con el servidor. Para ello, todos los comandos del cliente permiten especificar el puerto y host del servidor mediante las opciones <code>--port</code> y <code>--host</code> respectivamente. Donde <code>port</code> es un número entero y <code>host</code> es una string. Los valores por defecto son el puerto <code>5510</code> y el host <code>127.0.0.1</code>.</p>
+				<ul>
+					<li><p><strong>Conexión con el servidor</strong></p>
+						<pre><code class="language-typescript"><span style="color: #24292E">    client.</span><span style="color: #6F42C1">connect</span><span style="color: #24292E">(net.</span><span style="color: #6F42C1">connect</span><span style="color: #24292E">(argv.port, argv.host)); </span><span style="color: #6A737D">// Conectamos con el servidor</span>
+</code></pre>
+					</li>
+					<li><p><strong>Recibir respuesta del servidor</strong><br>A continuación, adjuntaremos un handler al evento <code>response</code> del cliente, dicho handler puede depender del tipo de respuesta que se espera, por ejemplo: En el caso del comando list se espera recibir un array de strings que contiene los títulos de las notas listadas, por lo que debemos verificar que la petición ha sido resuelta correctamente :</p>
+					</li>
+				</ul>
+				<pre><code class="language-typescript"><span style="color: #24292E">      client.</span><span style="color: #6F42C1">on</span><span style="color: #24292E">(</span><span style="color: #032F62">&#039;response&#039;</span><span style="color: #24292E">, (</span><span style="color: #E36209">res</span><span style="color: #24292E">) </span><span style="color: #D73A49">=&gt;</span><span style="color: #24292E"> {</span>
+<span style="color: #24292E">        </span><span style="color: #D73A49">if</span><span style="color: #24292E"> (res.success) {</span>
+<span style="color: #24292E">          res.output.</span><span style="color: #6F42C1">forEach</span><span style="color: #24292E">((</span><span style="color: #E36209">noteTitle</span><span style="color: #D73A49">:</span><span style="color: #24292E"> </span><span style="color: #005CC5">string</span><span style="color: #24292E">) </span><span style="color: #D73A49">=&gt;</span><span style="color: #24292E"> console.</span><span style="color: #6F42C1">log</span><span style="color: #24292E">(noteTitle));</span>
+<span style="color: #24292E">        } </span><span style="color: #D73A49">else</span><span style="color: #24292E"> {</span>
+<span style="color: #24292E">          console.</span><span style="color: #6F42C1">log</span><span style="color: #24292E">(res.output);</span>
+<span style="color: #24292E">        }</span>
+<span style="color: #24292E">      });</span>
+</code></pre>
+				<p>Mientras que para el resto de comandos basta con imprimir la salida por consola:  </p>
+				<pre><code class="language-typescript"><span style="color: #24292E">      client.</span><span style="color: #6F42C1">on</span><span style="color: #24292E">(</span><span style="color: #032F62">&#039;response&#039;</span><span style="color: #24292E">, (</span><span style="color: #E36209">res</span><span style="color: #24292E">) </span><span style="color: #D73A49">=&gt;</span><span style="color: #24292E"> {</span>
+<span style="color: #24292E">        console.</span><span style="color: #6F42C1">log</span><span style="color: #24292E">(res.output);</span>
+<span style="color: #24292E">      });</span>
+</code></pre>
+				<ul>
+					<li><strong>Enviar petición</strong><br>Por último, emplearemos el método <code>processRequest</code> del cliente pasándole la petición formada con los parámetros introducidos por el usuario y un callback encargado de enviar la infomación a través del socket:  <pre><code class="language-typescript"><span style="color: #24292E">    client.</span><span style="color: #6F42C1">processRequest</span><span style="color: #24292E">({</span>
+<span style="color: #24292E">      type: </span><span style="color: #032F62">&#039;edit&#039;</span><span style="color: #24292E">,</span>
+<span style="color: #24292E">      username: argv.username,</span>
+<span style="color: #24292E">      title: argv.title,</span>
+<span style="color: #24292E">      params: params,</span>
+<span style="color: #24292E">    }, (</span><span style="color: #E36209">chunk</span><span style="color: #D73A49">:</span><span style="color: #24292E"> </span><span style="color: #005CC5">string</span><span style="color: #24292E">, </span><span style="color: #E36209">connection</span><span style="color: #D73A49">:</span><span style="color: #24292E"> </span><span style="color: #6F42C1">net</span><span style="color: #24292E">.</span><span style="color: #6F42C1">Socket</span><span style="color: #24292E">) </span><span style="color: #D73A49">=&gt;</span><span style="color: #24292E"> connection.</span><span style="color: #6F42C1">write</span><span style="color: #24292E">(chunk));</span>
+</code></pre>
+					</li>
+				</ul>
+				<a href="#servidor" id="servidor" style="color: inherit; text-decoration: none;">
+					<h2><strong>Servidor</strong></h2>
+				</a>
+				<p>Nuestro servidor funcionará de forma similar. Servirá de <em>wrapper</em> para un objeto <code>net.Server</code>.</p>
+				<p>El constructor recibirá como argumentos:</p>
+				<ul>
+					<li><code>sendingMethod</code>: Callback que recibe un <em>chunk</em> (string) y una conexión (EventEmitter). Define el método utilizado para enviar los trozos de las respuestas.</li>
+					<li><code>endingMethod</code>: Callback opcional que recibe como parámetro un <code>EventEmitter</code>. Define como debe el servidor terminar una conexión con un cliente.</li>
+				</ul>
+				<p>Además, incializará el gestor de notas (<code>NotesManager</code>) y también adjuntará un handler al evento <code>request</code>. Dicho handler se encargará de procesar la petición, eviarla a la conexión de donde ha venido la petición y, si está definido, invocar al <code>endingMethod</code> para cerrar la conexión con el cliente:  </p>
+				<pre><code class="language-typescript"><span style="color: #24292E">    </span><span style="color: #005CC5">this</span><span style="color: #24292E">.notesManager </span><span style="color: #D73A49">=</span><span style="color: #24292E"> </span><span style="color: #D73A49">new</span><span style="color: #24292E"> </span><span style="color: #6F42C1">NotesManager</span><span style="color: #24292E">();</span>
+
+<span style="color: #24292E">    </span><span style="color: #6A737D">// Handles a &#039;request&#039; event for each connection</span>
+<span style="color: #24292E">    </span><span style="color: #005CC5">this</span><span style="color: #24292E">.</span><span style="color: #6F42C1">on</span><span style="color: #24292E">(</span><span style="color: #032F62">&#039;request&#039;</span><span style="color: #24292E">, (</span><span style="color: #E36209">req</span><span style="color: #24292E">, </span><span style="color: #E36209">connection</span><span style="color: #24292E">) </span><span style="color: #D73A49">=&gt;</span><span style="color: #24292E"> {</span>
+<span style="color: #24292E">      </span><span style="color: #D73A49">let</span><span style="color: #24292E"> response </span><span style="color: #D73A49">=</span><span style="color: #24292E"> </span><span style="color: #005CC5">this</span><span style="color: #24292E">.</span><span style="color: #6F42C1">processRequest</span><span style="color: #24292E">(req);</span>
+<span style="color: #24292E">      </span><span style="color: #005CC5">this</span><span style="color: #24292E">.</span><span style="color: #6F42C1">sendResponse</span><span style="color: #24292E">(connection, response, req);</span>
+
+<span style="color: #24292E">      </span><span style="color: #D73A49">if</span><span style="color: #24292E"> (</span><span style="color: #005CC5">this</span><span style="color: #24292E">.endingMethod) </span><span style="color: #005CC5">this</span><span style="color: #24292E">.</span><span style="color: #6F42C1">endingMethod</span><span style="color: #24292E">(connection);</span>
+<span style="color: #24292E">    });</span>
+</code></pre>
+				<a href="#listen" id="listen" style="color: inherit; text-decoration: none;">
+					<h3><strong>Listen</strong></h3>
+				</a>
+				<p>El método listen permite al servidor funcionar en un determinado endpoint. Recibe como parámetros:</p>
+				<ul>
+					<li><code>endPoint</code>: EventEmitter que representa el nuevo endpoint del servidor.</li>
+					<li><code>endingProcess</code>: Callback opcional que recibe un EventEmitter. Define las acciones que debe realizar el antiguo endpoint antes de ser sustituido por el nuevo.</li>
+					<li><code>startingProcess</code>: Callback opcional que recibe un EventEmitter. Define las acciones que debe realizar el nuevo endpoint para empezar a funcionar.</li>
+				</ul>
+				<p>Si se pasa un <code>endingProcess</code> se invoca pasándole el endpoint actual.
+				Se actualiza el endpoint, se adjuntan los handlers a los eventos de dicho endpoint y por último, si se pasa un <code>startingProcess</code> se ejecuta pasándole como argumento el nuevo endpoint.</p>
+				<pre><code class="language-typescript"><span style="color: #24292E">  </span><span style="color: #6F42C1">listen</span><span style="color: #24292E">(endPoint: EventEmitter, endingProcess</span><span style="color: #D73A49">?:</span><span style="color: #24292E"> (</span><span style="color: #E36209">oldEndpoint</span><span style="color: #D73A49">:</span><span style="color: #24292E"> </span><span style="color: #6F42C1">EventEmitter</span><span style="color: #24292E">) </span><span style="color: #D73A49">=&gt;</span><span style="color: #24292E"> </span><span style="color: #D73A49">void</span><span style="color: #24292E">, startingProcess</span><span style="color: #D73A49">?:</span><span style="color: #24292E"> (</span><span style="color: #E36209">server</span><span style="color: #D73A49">:</span><span style="color: #24292E"> </span><span style="color: #6F42C1">EventEmitter</span><span style="color: #24292E">) </span><span style="color: #D73A49">=&gt;</span><span style="color: #24292E"> </span><span style="color: #D73A49">void</span><span style="color: #24292E">) {</span>
+<span style="color: #24292E">    </span><span style="color: #D73A49">if</span><span style="color: #24292E"> (endingProcess) </span><span style="color: #6F42C1">endingProcess</span><span style="color: #24292E">(</span><span style="color: #005CC5">this</span><span style="color: #24292E">.endpoint);</span>
+<span style="color: #24292E">    </span><span style="color: #005CC5">this</span><span style="color: #24292E">.endpoint </span><span style="color: #D73A49">=</span><span style="color: #24292E"> endPoint;</span>
+<span style="color: #24292E">    </span><span style="color: #005CC5">this</span><span style="color: #24292E">.</span><span style="color: #6F42C1">setEndpointHandlers</span><span style="color: #24292E">(</span><span style="color: #005CC5">this</span><span style="color: #24292E">.endpoint);</span>
+<span style="color: #24292E">    </span><span style="color: #D73A49">if</span><span style="color: #24292E"> (startingProcess) </span><span style="color: #6F42C1">startingProcess</span><span style="color: #24292E">(</span><span style="color: #005CC5">this</span><span style="color: #24292E">.endpoint);</span>
+<span style="color: #24292E">  }</span>
+</code></pre>
+				<a href="#handlers-del-endpoint-del-servidor" id="handlers-del-endpoint-del-servidor" style="color: inherit; text-decoration: none;">
+					<h3><strong>Handlers del endpoint del servidor</strong></h3>
+				</a>
+				<p>El método <code>setEndpointHandlers</code> recibe un EventEmitter y le adjunta los siguientes handlers:</p>
+				<ul>
+					<li>Para el evento <code>error</code> el servidor emite un evento <code>serverError</code> junto a un objeto <code>ServerConnectionERror</code>.</li>
+				</ul>
+				<a href="#handlers-para-conexiones-con-el-cliente" id="handlers-para-conexiones-con-el-cliente" style="color: inherit; text-decoration: none;">
+					<h3><strong>Handlers para conexiones con el cliente</strong></h3>
+				</a>
+				<p>El método <code>setConnectionHandlers</code> recibe un EventEmitter y le adjunta los siguientes handlers:</p>
+				<ul>
+					<li><p>Para el evento <code>error</code> el servidor emite un evento <code>connectionError</code> junto a un objeto <code>ConnectionError</code>.</p>
+					</li>
+					<li><p>Para el evento <code>data</code> se guarda el trozo de dato en un buffer y cuando el último caracter es un salto de línea se emite un evento <code>request</code> junto a la request parseada y la conexión de la que provino:</p>
+						<pre><code class="language-typescript"><span style="color: #24292E">  </span><span style="color: #D73A49">let</span><span style="color: #24292E"> incomingRequest </span><span style="color: #D73A49">=</span><span style="color: #24292E"> </span><span style="color: #032F62">&#039;&#039;</span><span style="color: #24292E">;</span>
+<span style="color: #24292E">  connection.</span><span style="color: #6F42C1">on</span><span style="color: #24292E">(</span><span style="color: #032F62">&#039;data&#039;</span><span style="color: #24292E">, (</span><span style="color: #E36209">chunk</span><span style="color: #24292E">) </span><span style="color: #D73A49">=&gt;</span><span style="color: #24292E"> {</span>
+<span style="color: #24292E">    incomingRequest </span><span style="color: #D73A49">+=</span><span style="color: #24292E"> chunk;</span>
+
+<span style="color: #24292E">    </span><span style="color: #D73A49">if</span><span style="color: #24292E"> (incomingRequest[incomingRequest.</span><span style="color: #005CC5">length</span><span style="color: #24292E"> </span><span style="color: #D73A49">-</span><span style="color: #24292E"> </span><span style="color: #005CC5">1</span><span style="color: #24292E">] </span><span style="color: #D73A49">===</span><span style="color: #24292E"> </span><span style="color: #032F62">&#039;</span><span style="color: #005CC5">\n</span><span style="color: #032F62">&#039;</span><span style="color: #24292E">) {</span>
+<span style="color: #24292E">      </span><span style="color: #005CC5">this</span><span style="color: #24292E">.</span><span style="color: #6F42C1">emit</span><span style="color: #24292E">(</span><span style="color: #032F62">&#039;request&#039;</span><span style="color: #24292E">, </span><span style="color: #005CC5">JSON</span><span style="color: #24292E">.</span><span style="color: #005CC5">parse</span><span style="color: #24292E">(incomingRequest), connection);</span>
+<span style="color: #24292E">      incomingRequest </span><span style="color: #D73A49">=</span><span style="color: #24292E"> </span><span style="color: #032F62">&#039;&#039;</span><span style="color: #24292E">;</span>
+<span style="color: #24292E">    }</span>
+<span style="color: #24292E">  });</span>
+</code></pre>
+					</li>
+				</ul>
+				<a href="#enviar-respuesta-a-un-cliente" id="enviar-respuesta-a-un-cliente" style="color: inherit; text-decoration: none;">
+					<h3><strong>Enviar respuesta a un cliente</strong></h3>
+				</a>
+				<p>El método <code>sendResponse</code> recibe como argumentos una conexión (EventEmitter), una respuesta (ResponseType) y (opcionalmente) la petición a la que se está respondiendo.</p>
+				<p>Se encarga de convertir la respuesta a una string, dividirla en trozos de 50 caracteres (como máximo) y aplicar (si está definido) el <code>sendingMethod</code> sobre cada trozo de respuesta. Además, emitirá un evento <code>responseSent</code> cuando se termine de enviar la respuesta:  </p>
+				<pre><code class="language-typescript"><span style="color: #24292E">  </span><span style="color: #6F42C1">sendResponse</span><span style="color: #24292E">(connection: EventEmitter, res: ResponseType, req</span><span style="color: #D73A49">?:</span><span style="color: #24292E"> RequestType) {</span>
+<span style="color: #24292E">    </span><span style="color: #D73A49">const</span><span style="color: #24292E"> </span><span style="color: #005CC5">splittedRes</span><span style="color: #24292E"> </span><span style="color: #D73A49">=</span><span style="color: #24292E"> </span><span style="color: #005CC5">JSON</span><span style="color: #24292E">.</span><span style="color: #005CC5">stringify</span><span style="color: #24292E">(res).</span><span style="color: #6F42C1">split</span><span style="color: #24292E">(</span><span style="color: #032F62">&#039;&#039;</span><span style="color: #24292E">);</span>
+
+<span style="color: #24292E">    </span><span style="color: #D73A49">while</span><span style="color: #24292E"> (splittedRes.</span><span style="color: #005CC5">length</span><span style="color: #24292E"> </span><span style="color: #D73A49">&gt;</span><span style="color: #24292E"> </span><span style="color: #005CC5">0</span><span style="color: #24292E">) {</span>
+<span style="color: #24292E">      </span><span style="color: #D73A49">let</span><span style="color: #24292E"> chunk </span><span style="color: #D73A49">=</span><span style="color: #24292E"> splittedRes.</span><span style="color: #6F42C1">splice</span><span style="color: #24292E">(</span><span style="color: #005CC5">0</span><span style="color: #24292E">, </span><span style="color: #005CC5">51</span><span style="color: #24292E">).</span><span style="color: #6F42C1">join</span><span style="color: #24292E">(</span><span style="color: #032F62">&#039;&#039;</span><span style="color: #24292E">);</span>
+<span style="color: #24292E">      chunk </span><span style="color: #D73A49">+=</span><span style="color: #24292E"> splittedRes.</span><span style="color: #005CC5">length</span><span style="color: #24292E"> </span><span style="color: #D73A49">===</span><span style="color: #24292E"> </span><span style="color: #005CC5">0</span><span style="color: #24292E"> </span><span style="color: #D73A49">?</span><span style="color: #24292E"> </span><span style="color: #032F62">&#039;</span><span style="color: #005CC5">\n</span><span style="color: #032F62">&#039;</span><span style="color: #24292E"> </span><span style="color: #D73A49">:</span><span style="color: #24292E"> </span><span style="color: #032F62">&#039;&#039;</span><span style="color: #24292E">;</span>
+<span style="color: #24292E">      </span><span style="color: #005CC5">this</span><span style="color: #24292E">.</span><span style="color: #6F42C1">sendingMethod</span><span style="color: #24292E">(chunk, connection);</span>
+<span style="color: #24292E">    }</span>
+
+<span style="color: #24292E">    </span><span style="color: #005CC5">this</span><span style="color: #24292E">.</span><span style="color: #6F42C1">emit</span><span style="color: #24292E">(</span><span style="color: #032F62">&#039;responseSent&#039;</span><span style="color: #24292E">, res, req);</span>
+<span style="color: #24292E">  }</span>
+</code></pre>
+				<a href="#procesar-una-petición" id="procesar-una-petición" style="color: inherit; text-decoration: none;">
+					<h3><strong>Procesar una petición</strong></h3>
+				</a>
+				<p>El método <code>processRequest</code> recibe como parámetro la petición a procesar.</p>
+				<p>Dentro de un bloque try-catch, mediante un switch case, se relizan las acciones indicadas en la petición: añadir, listar, leer, eliminar o editar una nota, en caso de que se ejecute correctamente la petición se guarda la salida en la respuesta, en caso de que se produzca un error se guarda el mensaje de error en la respuesta y se devuelve la misma.</p>
+				<a href="#uso-1" id="uso-1" style="color: inherit; text-decoration: none;">
+					<h3><strong>Uso</strong></h3>
+				</a>
+				<p>El puerto por defecto en el que funcionará nuestro server sera el <code>5510</code>, aunque puede especificarse por línea de comandos: <code>node dist/Server 5512</code>.</p>
+				<p>Definiremos nuestro objeto de la clase <code>NotesManagerServer</code> pasándole como argumentos un <code>sendingMethod</code> que escribe un trozo de dato en un socket y un <code>endingMethod</code> que se encarga de cerrar la conexión con el cliente.  </p>
+				<pre><code class="language-typescript"><span style="color: #D73A49">const</span><span style="color: #24292E"> </span><span style="color: #005CC5">server</span><span style="color: #24292E"> </span><span style="color: #D73A49">=</span><span style="color: #24292E"> </span><span style="color: #D73A49">new</span><span style="color: #24292E"> </span><span style="color: #6F42C1">NotesManagerServer</span><span style="color: #24292E">((</span><span style="color: #E36209">chunk</span><span style="color: #D73A49">:</span><span style="color: #24292E"> </span><span style="color: #005CC5">string</span><span style="color: #24292E">, </span><span style="color: #E36209">connection</span><span style="color: #D73A49">:</span><span style="color: #24292E"> </span><span style="color: #6F42C1">net</span><span style="color: #24292E">.</span><span style="color: #6F42C1">Socket</span><span style="color: #24292E">) </span><span style="color: #D73A49">=&gt;</span><span style="color: #24292E"> connection.</span><span style="color: #6F42C1">write</span><span style="color: #24292E">(chunk),</span>
+<span style="color: #24292E">  (</span><span style="color: #E36209">connection</span><span style="color: #D73A49">:</span><span style="color: #24292E"> </span><span style="color: #6F42C1">net</span><span style="color: #24292E">.</span><span style="color: #6F42C1">Socket</span><span style="color: #24292E">) </span><span style="color: #D73A49">=&gt;</span><span style="color: #24292E"> connection.</span><span style="color: #6F42C1">end</span><span style="color: #24292E">());</span>
+</code></pre>
+				<p>Además, definiremos los handlers para los erroes (errores tanto del cliente como del servidor):  </p>
+				<pre><code class="language-typescript"><span style="color: #D73A49">const</span><span style="color: #24292E"> </span><span style="color: #6F42C1">errorHandler</span><span style="color: #24292E"> </span><span style="color: #D73A49">=</span><span style="color: #24292E"> (</span><span style="color: #E36209">err</span><span style="color: #D73A49">:</span><span style="color: #24292E"> </span><span style="color: #6F42C1">BasicError</span><span style="color: #24292E">) </span><span style="color: #D73A49">=&gt;</span><span style="color: #24292E"> {</span>
+<span style="color: #24292E">  console.</span><span style="color: #6F42C1">log</span><span style="color: #24292E">(err.</span><span style="color: #6F42C1">toString</span><span style="color: #24292E">());</span>
+<span style="color: #24292E">  process.</span><span style="color: #6F42C1">exit</span><span style="color: #24292E">(</span><span style="color: #D73A49">-</span><span style="color: #005CC5">1</span><span style="color: #24292E">);</span>
+<span style="color: #24292E">};</span>
+<span style="color: #24292E">server.</span><span style="color: #6F42C1">on</span><span style="color: #24292E">(</span><span style="color: #032F62">&#039;serverError&#039;</span><span style="color: #24292E">, errorHandler);</span>
+<span style="color: #24292E">server.</span><span style="color: #6F42C1">on</span><span style="color: #24292E">(</span><span style="color: #032F62">&#039;connectionError&#039;</span><span style="color: #24292E">, errorHandler)</span>
+</code></pre>
+				<p>Y también un handler para cuando se ha enviado una respuesta (evento <code>requestSent</code>) que se encargue de imprimir por pantalla la petición y la respuesta:  </p>
+				<pre><code class="language-typescript"><span style="color: #24292E">server.</span><span style="color: #6F42C1">on</span><span style="color: #24292E">(</span><span style="color: #032F62">&#039;responseSent&#039;</span><span style="color: #24292E">, (</span><span style="color: #E36209">res</span><span style="color: #24292E">, </span><span style="color: #E36209">req</span><span style="color: #24292E">) </span><span style="color: #D73A49">=&gt;</span><span style="color: #24292E"> {</span>
+<span style="color: #24292E">  console.</span><span style="color: #6F42C1">log</span><span style="color: #24292E">(</span><span style="color: #6F42C1">warn</span><span style="color: #24292E">(</span><span style="color: #032F62">&#039;Transaction complete:</span><span style="color: #005CC5">\n</span><span style="color: #032F62">&#039;</span><span style="color: #24292E">) </span><span style="color: #D73A49">+</span>
+<span style="color: #24292E">    chalk.</span><span style="color: #6F42C1">blue</span><span style="color: #24292E">(</span><span style="color: #032F62">&#039;</span><span style="color: #005CC5">\n</span><span style="color: #032F62">  Req:&#039;</span><span style="color: #24292E">) </span><span style="color: #D73A49">+</span><span style="color: #24292E"> </span><span style="color: #005CC5">JSON</span><span style="color: #24292E">.</span><span style="color: #005CC5">stringify</span><span style="color: #24292E">(req) </span><span style="color: #D73A49">+</span>
+<span style="color: #24292E">    chalk.</span><span style="color: #6F42C1">green</span><span style="color: #24292E">(</span><span style="color: #032F62">&#039;</span><span style="color: #005CC5">\n</span><span style="color: #032F62">  Res:&#039;</span><span style="color: #24292E">) </span><span style="color: #D73A49">+</span><span style="color: #24292E"> </span><span style="color: #005CC5">JSON</span><span style="color: #24292E">.</span><span style="color: #005CC5">stringify</span><span style="color: #24292E">(res)</span>
+<span style="color: #24292E">  );</span>
+<span style="color: #24292E">});</span>
+</code></pre>
+				<p>Para poner a funcionar nuestro servidor necesitamos un endpoint en el que escuchar, en nuestro caso será un objeto <code>net.Server</code>. Para crearlo pasaremos un handler al método <code>net.createServer</code> que se encargue de aplicar el método <code>NotesManagerServer.setConnectionHandlers</code> sobre la conexión que recibe el callback como argumento:  </p>
+				<pre><code class="language-typescript"><span style="color: #D73A49">const</span><span style="color: #24292E"> </span><span style="color: #005CC5">serverEndPoint</span><span style="color: #24292E"> </span><span style="color: #D73A49">=</span><span style="color: #24292E"> net.</span><span style="color: #6F42C1">createServer</span><span style="color: #24292E">((</span><span style="color: #E36209">connection</span><span style="color: #24292E">) </span><span style="color: #D73A49">=&gt;</span><span style="color: #24292E"> server.</span><span style="color: #6F42C1">setConnectionHandlers</span><span style="color: #24292E">(connection));</span>
+</code></pre>
+				<p>Una vez tenemos un endPoint configurado podemos invocar el método <code>NotesManagerServer.listen</code> pasándole como parámetros el endpoint recién creado, un <code>endingMethod</code> que se encargue de cerrar el viejo endpoint (si existía) y un <code>startingProcess</code> que se encargue de invocar el método <code>net.Server.listen</code> del endpoint sobre el puerto especificado:</p>
+				<pre><code class="language-typescript"><span style="color: #24292E">server.</span><span style="color: #6F42C1">listen</span><span style="color: #24292E">(serverEndPoint, (</span><span style="color: #E36209">oldEndpoint</span><span style="color: #D73A49">:</span><span style="color: #24292E"> </span><span style="color: #6F42C1">net</span><span style="color: #24292E">.</span><span style="color: #6F42C1">Server</span><span style="color: #24292E">) </span><span style="color: #D73A49">=&gt;</span><span style="color: #24292E"> oldEndpoint?.</span><span style="color: #6F42C1">close</span><span style="color: #24292E">(), (</span><span style="color: #E36209">endPoint</span><span style="color: #D73A49">:</span><span style="color: #24292E"> </span><span style="color: #6F42C1">net</span><span style="color: #24292E">.</span><span style="color: #6F42C1">Server</span><span style="color: #24292E">) </span><span style="color: #D73A49">=&gt;</span><span style="color: #24292E"> endPoint.</span><span style="color: #6F42C1">listen</span><span style="color: #24292E">(port, () </span><span style="color: #D73A49">=&gt;</span><span style="color: #24292E"> {</span>
+<span style="color: #24292E">  console.</span><span style="color: #6F42C1">log</span><span style="color: #24292E">(</span><span style="color: #6F42C1">warn</span><span style="color: #24292E">(</span><span style="color: #032F62">`NotesManager server is running on port ${</span><span style="color: #24292E">port</span><span style="color: #032F62">}`</span><span style="color: #24292E">));</span>
+<span style="color: #24292E">}));</span>
+</code></pre>
+				<p>Y nuestro servdiro ya estaría listo para escuchar y responder peticiones:  </p>
+				<p><img src="media/server-demo-2.gif" alt="Server Demo2"></p>
+				<p>A continuación, un ejemplo de uso de la aplicación con un servidor y dos clientes, uno de los clientes alojado en la misma máquina que el servidor y otro en otra máquina de lam isma red local.</p>
+				<ul>
+					<li>La terminal izquierda es el cliente en la misma máquina que el servidor. En dicho cliente se listan las notas que el servidor tiene guardadas, por lo que se puede observar como se van añadiendo las notas que el otro cliente envía.</li>
+					<li>La terminal de la derecha es el servidor</li>
+					<li>La terminal de la esquina inferior derecha es un cliente en otra máquina de la misma red local. Desde dicho cliente se ejecuta un script que añade notas al servidor.</li>
+				</ul>
+				<p><img src="media/../media/demo-host.gif" alt="Server demo host"></p>
 			</div>
 		</div>
 		<div class="col-4 col-menu menu-sticky-wrap menu-highlight">

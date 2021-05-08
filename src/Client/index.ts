@@ -75,6 +75,9 @@ yargs.command({
       if (!Note.checkColor(argv.color)) throw new InvalidColor(argv.color);
 
       client.connect(net.connect(argv.port, argv.host));
+      client.on('response', (res) => {
+        console.log(res.output);
+      });
       client.processRequest({
         type: 'add',
         username: argv.username,
@@ -83,9 +86,6 @@ yargs.command({
         color: argv.color as KnownColors
       }, sendRequest);
 
-      client.on('response', (res) => {
-        console.log(res.output);
-      })
     }
   },
 });
@@ -123,15 +123,15 @@ yargs.command({
       && typeof argv.port === 'number' && typeof argv.host === 'string') {
       
       client.connect(net.connect(argv.port, argv.host));
+      client.on('response', (res) => {
+        console.log(res.output);
+      });
       client.processRequest({
         type: 'remove',
         username: argv.username,
         title: argv.title,
       }, sendRequest);
 
-      client.on('response', (res) => {
-        console.log(res.output);
-      });
     }
   },
 });
@@ -189,6 +189,9 @@ yargs.command({
       };
 
       client.connect(net.connect(argv.port, argv.host));
+      client.on('response', (res) => {
+        console.log(res.output);
+      });
       client.processRequest({
         type: 'edit',
         username: argv.username,
@@ -196,9 +199,6 @@ yargs.command({
         params: params,
       }, sendRequest);
 
-      client.on('response', (res) => {
-        console.log(res.output);
-      });
     }
   },
 });
@@ -232,11 +232,6 @@ yargs.command({
 
       
       client.connect(net.connect(argv.port, argv.host));
-      client.processRequest({
-        type: 'list',
-        username: argv.username,
-      }, sendRequest);
-
       client.on('response', (res) => {
         if (res.success) {
           res.output.forEach((noteTitle: string) => console.log(noteTitle));
@@ -244,6 +239,11 @@ yargs.command({
           console.log(res.output);
         }
       });
+      client.processRequest({
+        type: 'list',
+        username: argv.username,
+      }, sendRequest);
+
 
     }
   },
@@ -282,15 +282,15 @@ yargs.command({
       && typeof argv.port === 'number' && typeof argv.host === 'string') {
 
       client.connect(net.connect(argv.port, argv.host));
+      client.on('response', (res) => {
+        console.log(res.output);
+      });
       client.processRequest({
         type: 'read',
         username: argv.username,
         title: argv.title
       }, sendRequest);
 
-      client.on('response', (res) => {
-        console.log(res.output);
-      });
     }
   },
 });
